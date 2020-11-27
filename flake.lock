@@ -1,66 +1,62 @@
 {
   "nodes": {
-    "gnulib-src": {
+    "flake-compat": {
       "flake": false,
-      "info": {
-        "lastModified": 1588070119,
-        "narHash": "sha256-gMIWbMSKisS5w6QxKFfN1IJHPHxZw9h5upzxpada+1c=",
-        "revCount": 20684
-      },
       "locked": {
-        "ref": "master",
-        "rev": "5ec4d920e4acb45225320c3df9ae32fdff928413",
-        "type": "git",
-        "url": "https://git.savannah.gnu.org/git/gnulib.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://git.savannah.gnu.org/git/gnulib.git"
-      }
-    },
-    "hello-src": {
-      "flake": false,
-      "info": {
-        "lastModified": 1549746003,
-        "narHash": "sha256-7losVbaLgy9pjL6GoOrZAK6O6nCXm3pddo03UZDjxUc=",
-        "revCount": 454
-      },
-      "locked": {
-        "ref": "master",
-        "rev": "0cce403f478bd0a4a60d0b8566c67d3a72498008",
-        "type": "git",
-        "url": "https://git.savannah.gnu.org/git/hello.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://git.savannah.gnu.org/git/hello.git"
-      }
-    },
-    "nixpkgs": {
-      "info": {
-        "lastModified": 1588027483,
-        "narHash": "sha256-DcNFRegA72g1fmVWp+kFxxD4JuAwwM7XjYy0ebRa56U="
-      },
-      "locked": {
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "2faa76db27c4a8045d050d9b390dbb2249b0f3c0",
+        "lastModified": 1600159751,
+        "narHash": "sha256-0l7NZVkx81V3nJhCugXd8pE3O0kOuDRs+FnlZQPhEUA=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "535e7c011657b6111b706441e046d285807bc58d",
         "type": "github"
       },
       "original": {
-        "id": "nixpkgs",
-        "ref": "nixos-20.03",
-        "type": "indirect"
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1600181811,
+        "narHash": "sha256-ZUjQDAZWaWG+XEeNeO51sciwubEFdllbIpH4jJrfDxo=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "3b8ddb2f1ee6f4c0794fb6dfbd273c3599492b76",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-20.09",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "pixelfed-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1599268723,
+        "narHash": "sha256-/td0ZNdAqnmUQs9v3TPBobs9VJazNr5KMk9fYaFKg8g=",
+        "owner": "pixelfed",
+        "repo": "pixelfed",
+        "rev": "f747897290b56b302ad862d5c3371b5c8e8196dc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pixelfed",
+        "ref": "dev",
+        "repo": "pixelfed",
+        "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "gnulib-src": "gnulib-src",
-        "hello-src": "hello-src",
-        "nixpkgs": "nixpkgs"
+        "flake-compat": "flake-compat",
+        "nixpkgs": "nixpkgs",
+        "pixelfed-src": "pixelfed-src"
       }
     }
   },
   "root": "root",
-  "version": 5
+  "version": 7
 }

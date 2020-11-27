@@ -1,0 +1,14 @@
+diff --git a/bootstrap/app.php b/bootstrap/app.php
+index f2801adf..b88d9f44 100644
+--- a/bootstrap/app.php
++++ b/bootstrap/app.php
+@@ -43,0 +44,2 @@ $app->singleton(
++$app->useStoragePath( env( 'APP_STORAGE_PATH', base_path() . '/var/lib/pixelfed/storage' ) );
++
+diff --git a/config/pixelfed.php b/config/pixelfed.php
+index 7504c949..9ac45f55 100644
+--- a/config/pixelfed.php
++++ b/config/pixelfed.php
+@@ -140 +140 @@ return [
+-    'enforce_email_verification'  => env('ENFORCE_EMAIL_VERIFICATION', true),
++    'enforce_email_verification'  => env('ENFORCE_EMAIL_VERIFICATION', false),

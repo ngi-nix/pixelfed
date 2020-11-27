@@ -1,18 +1,24 @@
 {
-  description = "(insert short project description here)";
+  description = "Pixelfed a free and ethical photo sharing platform, powered by ActivityPub federation.";
 
   # Nixpkgs / NixOS version to use.
-  inputs.nixpkgs.url = "nixpkgs/nixos-20.03";
+  inputs.nixpkgs = { type = "github"; owner = "NixOS"; repo = "nixpkgs"; ref = "nixos-20.09"; };
 
-  # Upstream source tree(s).
-  inputs.hello-src = { url = git+https://git.savannah.gnu.org/git/hello.git; flake = false; };
-  inputs.gnulib-src = { url = git+https://git.savannah.gnu.org/git/gnulib.git; flake = false; };
+  # Flake compatability shim
+  inputs.flake-compat = { type = "github"; owner = "edolstra"; repo = "flake-compat"; flake = false; };
 
-  outputs = { self, nixpkgs, hello-src, gnulib-src }:
+  inputs.pixelfed-src = { url = github:pixelfed/pixelfed/dev; flake = false; };
+
+  outputs = { self, nixpkgs, ... }@inputs:
     let
-
       # Generate a user-friendly version numer.
-      version = builtins.substring 0 8 hello-src.lastModifiedDate;
+      versions =
+        let
+          generateVersion = builtins.substring 0 8;
+        in
+        nixpkgs.lib.genAttrs
+          [ "pixelfed" ]
+          (n: generateVersion inputs."${n}-src".lastModifiedDate);
 
       # System types to support.
       supportedSystems = [ "x86_64-linux" ];
@@ -24,97 +30,102 @@
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; overlays = [ self.overlay ]; });
 
     in
-
     {
 
       # A Nixpkgs overlay.
-      overlay = final: prev: {
+      overlay = final: prev:
+        with final;
+        {
 
-        hello = with final; stdenv.mkDerivation rec {
-          name = "hello-${version}";
-
-          src = hello-src;
-
-          buildInputs = [ autoconf automake gettext gnulib perl gperf texinfo help2man ];
-
-          preConfigure = ''
-            mkdir -p .git # force BUILD_FROM_GIT
-            ./bootstrap --gnulib-srcdir=${gnulib-src} --no-git --skip-po
-          '';
-
-          meta = {
-            homepage = "https://www.gnu.org/software/hello/";
-            description = "A program to show a familiar, friendly greeting";
+          pixelfed = callPackage ./pkgs/pixelfed { } {
+            src = inputs.pixelfed-src;
+            version = versions.pixelfed;
           };
-        };
 
-      };
+        };
 
       # Provide some binary packages for selected system types.
       packages = forAllSystems (system:
         {
-          inherit (nixpkgsFor.${system}) hello;
+          inherit (nixpkgsFor.${system})
+            pixelfed;
         });
 
       # The default package for 'nix build'. This makes sense if the
       # flake provides only one package or there is a clear "main"
       # package.
-      defaultPackage = forAllSystems (system: self.packages.${system}.hello);
+      defaultPackage = forAllSystems (system: self.packages.${system}.pixelfed);
 
       # A NixOS module, if applicable (e.g. if the package provides a system service).
-      nixosModules.hello =
+      nixosModules.pixelfed =
         { pkgs, ... }:
         {
+          imports =
+            [
+              ./modules/pixelfed.nix
+            ];
+
           nixpkgs.overlays = [ self.overlay ];
-
-          environment.systemPackages = [ pkgs.hello ];
-
-          #systemd.services = { ... };
         };
 
-      # Tests run by 'nix flake check' and by Hydra.
-      checks = forAllSystems (system: {
-        inherit (self.packages.${system}) hello;
+      # NixOS system configuration, if applicable
+      nixosConfigurations.container =
+        nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules =
+            [
+              self.nixosModules.pixelfed
+              ({ pkgs, ... }: {
+                system.configurationRevision = "whatever";
+                boot.isContainer = true;
+                networking.useDHCP = false;
+                networking.firewall.allowedTCPPorts = [ 80 443 25 465 ];
+                services.pixelfed = {
+                  enable = true;
+                  appDomain = "10.233.1.2";
+                  config = {
+                    dbSocket = "/var/run/mysqld/mysqld.sock";
+                    dbPort = "3306";
+                    appKey = "'base64:lwX95GbNWX3XsucdMe0XwtOKECta3h/B+p9NbH2jd0E='";
+                  };
+                };
+                services.redis.enable = true;
 
-        # Additional tests, if applicable.
-        test =
-          with nixpkgsFor.${system};
-          stdenv.mkDerivation {
-            name = "hello-test-${version}";
-
-            buildInputs = [ hello ];
-
-            unpackPhase = "true";
-
-            buildPhase = ''
-              echo 'running some integration tests'
-              [[ $(hello) = 'Hello, world!' ]]
-            '';
-
-            installPhase = "mkdir -p $out";
-          };
-
-        # A VM test of the NixOS module.
-        vmTest =
-          with import (nixpkgs + "/nixos/lib/testing-python.nix") {
-            inherit system;
-          };
-
-          makeTest {
-            nodes = {
-              client = { ... }: {
-                imports = [ self.nixosModules.hello ];
-              };
-            };
-
-            testScript =
-              ''
-                start_all()
-                client.wait_for_unit("multi-user.target")
-                client.succeed("hello")
-              '';
-          };
-      });
+                services.mysql = {
+                  enable = true;
+                  package = pkgs.mariadb;
+                  ensureDatabases = [ "pixelfed" ];
+                  ensureUsers = [
+                    {
+                      name = "pixelfed";
+                      ensurePermissions = {
+                        "pixelfed.*" = "ALL PRIVILEGES";
+                      };
+                    }
+                  ];
+                };
+                systemd.services = {
+                  pixelfed-local-certs = {
+                    wantedBy = [ "multi-user.target" ];
+                    before = [ "nginx.service" ];
+                    script = ''
+                      if [ ! -d "/certs" ]; then
+                        mkdir /certs
+                        ${pkgs.openssl}/bin/openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                        -keyout /certs/nginx-selfsigned.key \
+                        -out /certs/nginx-selfsigned.crt \
+                        -subj "/C=PE/ST=Lima/L=Lima/O=Acme Inc. /OU=IT Department/CN=acme.com"
+                        chown -R nginx:nginx /certs
+                      fi
+                    '';
+                    serviceConfig = {
+                      Type = "oneshot";
+                    };
+                  };
+                };
+              })
+            ];
+        };
 
     };
 }
