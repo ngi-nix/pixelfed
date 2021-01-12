@@ -8,3 +8,5 @@ Checkout the sources locally and just run
 sudo nixos-container create pixelfed --flake .
 sudo nixos-container start pixelfed
 ```
+
+Access the container thru HTTP and verify that the pixelfed application is running.
